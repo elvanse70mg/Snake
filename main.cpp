@@ -5,121 +5,37 @@
 #include <conio.h>
 #include <thread>
 #include <chrono>
+#include <fstream>
+#include "snake.h"
 
 //Config
 int speed_of_snake = 200; //in milliseconds
 
-const int WIDTH = 20;
-const int HEIGHT = 10;
+//Pause Funktion
+bool paused = false;
 
-//position für schlagenkopf erstellen
-struct Position 
-{
-    int x;
-    int y;
-};
+int highscore = 0;
 
-//Position von snake ausgeben Funktion
+bool startgame = false; // Variable to control the game loop
 
-void printPosition(Position snake)
-{
-    std::cout << "Neue Position Snake x: " << snake.x << std::endl;
-    std::cout << "Neue Position Snake y: " << snake.y << std::endl;
-}
-
-
-
-
-//0 bewegen Funktion
-void drawField(const std::vector<Position>& snake, Position food)
-{
-    for (int y = 0; y < HEIGHT; y++)
-    {
-        for (int x = 0; x < WIDTH; x++)
-        {
-            bool snakeHere = false;
-            for (int i = 0; i < snake.size(); i++)
-            {
-                if (x == snake[i].x && y == snake[i].y)
-                {
-                    snakeHere = true;
-                    break;
-                }
-            }
-            if (snakeHere)
-{
-            std::cout << "O";
-}
-            else if (x == food.x && y == food.y )
-            {
-                std::cout << "*";
-            }
-            else
-            {
-                std::cout << ".";
-            }
-        }
-        std::cout << std::endl;
-    }
-}
-
-//Check Collision Funktion
-bool checkCollision(const std::vector<Position>& snake)
-{
-    if (snake[0].x < 0 ||
-        snake[0].x >= WIDTH ||
-        snake[0].y < 0 ||
-        snake[0].y >= HEIGHT)
-    {
-        return true;
-    }
-
-    for (int i = 1; i < snake.size(); i++)
-    {
-        if (snake[0].x == snake[i].x &&
-            snake[0].y == snake[i].y)
-        {
-            return true;
-        }
-    }
-
-    return false;
-}
-
-//Snake bewegen Funktion
-void moveSnake(std::vector<Position>& snake, char input)
-{
-    for (int i = snake.size() - 1; i > 0; i--)
-    {
-        snake[i] = snake[i - 1];
-    }
-
-    if (input == 'w')
-    {
-        snake[0].y--;
-    }
-
-    if (input == 's')
-    {
-        snake[0].y++;
-    }
-
-    if (input == 'a')
-    {
-        snake[0].x--;
-    }
-
-    if (input == 'd')
-    {
-        snake[0].x++;
-    }
-}
 
 int main() 
 {
+    
     std::srand(std::time(0));
 
+    highscore = loadHighscore();
+
+    showMenu(highscore, speed_of_snake, startgame);
+    
+
+    while(startgame){// 2. Schleife um restarten zu können
+        
+        
+    
+
     std::vector<Position> snake;
+    std::vector<Position> obstacle;
 
     snake.push_back({5, 5});
     snake.push_back({4, 5});
@@ -128,81 +44,97 @@ int main()
     
 
     //Food
-    Position food;
-    food.x = 10;
-    food.y = 3;
+    Position food = spawnFood(snake, obstacle);
 
     //Score
     int score = 0;
-
-
-    char input;
     
-
     std::cout << "Snake x: " << snake[0].x << std::endl;
     std::cout << "Snake y: " << snake[0].y << std::endl;
 
     bool ateFood = false;
 
     bool gameOver = false;
-    
-    input = 'd'; // Startrichtung der Schlange auf 'd' setzen (nach rechts)
+
     //Steuerung
+    
+    char input = 'd'; // Startrichtung der Schlange auf 'd' setzen (nach rechts)
+    
     while (!gameOver)
     {   
         std::this_thread::sleep_for(std::chrono::milliseconds(speed_of_snake));
+
+        
         
         if(_kbhit()){
-            input = _getch();
+            char pressedButton = _getch();
+            if (pressedButton == 'w' || pressedButton == 'a' || pressedButton == 's' || pressedButton == 'd')
+            {
+                input = pressedButton;
+            }
+            if (pressedButton == 'p')
+            {
+                paused = !paused;
+
+                if (paused)
+                {
+
+                    std::cout << "Game Paused. Press 'p' to resume." << std::endl;
+                }
+                else
+                {
+                    
+                    std::cout << "Game Resumed." << std::endl;
+                    
+                    
+                }
+                
+            }
         }
-        
+
+        if(paused)
+        {
+            continue; 
+        }
 
         moveSnake(snake, input);
+        
+        
+
+        
 
     //Collision
-    gameOver = checkCollision(snake);
+    gameOver = checkCollision(snake, obstacle);
 
 
 //Game Over
-    if(gameOver == true){
-        std::cout << "Game Over! You collided with yourself." << std::endl;
+    if(gameOver){
+        std::cout << "Game Over! You collided." << std::endl;
         break;
     }
 
-        //Begrenzung
-    if (snake[0].x < 0)
-{
-    snake[0].x = 0;
-}
-
-    if (snake[0].x >= WIDTH)
-{
-    snake[0].x = WIDTH - 1;
-}
-
-    if (snake[0].y < 0)
-{
-    snake[0].y = 0;
-}
-
-    if (snake[0].y >= HEIGHT)
-{
-    snake[0].y = HEIGHT - 1;
-}
+//Food eaten
 
     if (snake[0].x == food.x && snake[0].y == food.y)
     {
         ateFood = true;
-        food.x = std::rand() % WIDTH;
-        food.y = std::rand() % HEIGHT;
+        food = spawnFood(snake, obstacle);
         score++;
+        //Wenn Score um 5 steigt, Geschwindigkeit erhöhen
+        if (score % 5 == 0 && score != 0)
+    {
+        speed_of_snake -= 10; // Geschwindigkeit um 10ms erhöhen
+        drawObstacle(obstacle, snake, food); // Hindernis zeichnen
+
+
+    }
     }
 
     
     system("cls");
     
     
-    drawField(snake, food);
+    drawField(snake, food, obstacle);
     printPosition(snake[0]);
     std::cout << "Score: " << score << std::endl;
     
@@ -213,11 +145,35 @@ int main()
         ateFood = false;
         snake.push_back(snake[snake.size() - 1]);
     }
-    }
-
 
     
+}
 
+    //Runde ist vorbei
+    system("cls");
+    saveHighscore(score, highscore);
+    std::cout << "Game Over! Final Score: " << score << std::endl;
+    std::cout << "Highscore: " << highscore << std::endl;
+    std::cout << "Press r  to continue or q to quit." << std::endl;
+    std::cout << "Speed: " << speed_of_snake << " ms" << std::endl;
+
+    char choice;
+
+    do
+{
+    choice = _getch();
+}
+    while (choice != 'r' && choice != 'q');
+
+    if (choice == 'q')
+{
+    break;
+}
+
+    if (choice == 'r')
+{
+    continue;
+}
 
 
 
@@ -226,3 +182,6 @@ int main()
 
 
 }
+}
+
+
