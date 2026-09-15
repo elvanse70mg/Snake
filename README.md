@@ -8,6 +8,7 @@ Just a simple Snake game written in C++.
 - A = Left
 - S = Down
 - D = Right
+- P = Pause
 
 ## Features
 
@@ -16,3 +17,14 @@ Just a simple Snake game written in C++.
 - Score system
 - Snake growth
 - Wall and self collision
+- Window stays open
+- Press r to restart
+- Press q to quit
+- Finalscore
+- Food can not spawn on snake
+- Snake gets faster every 5 Scorepoints
+- Highscore and saving with fstream
+- Pause
+- Obstacles
+
+
